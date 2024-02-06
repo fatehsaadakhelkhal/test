@@ -14,7 +14,6 @@ public class LatestValueEventBusTest {
     }
 
     @Test
-    @Ignore
     public void subscribe_then_produce_then_produce_obsolete_should_call_consumer_once() {
         LatestValueBasicEventBus<Event> bus = new LatestValueBasicEventBus<>();
         Subscriber<Event> spy = Mockito.spy(new Subscriber<>());
