@@ -14,7 +14,6 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class FilteringSlidingWindowStatisticsImpl implements FilteringSlidingWindowStatistics {
-    private final Queue<TimestampedMeasure> timestampedMeasures = new LinkedBlockingQueue<>();
     private final List<ConsumerWithFilter<Statistics>> consumersWithFilters = new CopyOnWriteArrayList<>();
     private final Statistics statistics;
 
@@ -35,7 +34,7 @@ public class FilteringSlidingWindowStatisticsImpl implements FilteringSlidingWin
 
     @Override
     public void add(int measurement) {
-        timestampedMeasures.offer(new TimestampedMeasure(measurement, Instant.now().getEpochSecond()));
+        statistics.addMeasure(new TimestampedMeasure(measurement, Instant.now().getEpochSecond()));
     }
 
     @Override
