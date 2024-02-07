@@ -22,7 +22,13 @@ public class MultiThreadedEventBus<E> implements BasicEventBus<E> {
                     E event = queue.take();
                     if(consumerMap.containsKey(event.getClass())) {
                         consumerMap.get(event.getClass())
-                                .forEach(consumer -> consumer.accept(event));
+                                .forEach(consumer -> {
+                                    try {
+                                        consumer.accept(event);
+                                    } catch (Exception e) {
+                                        logger.error("Error happened", e);
+                                    }
+                                });
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();

@@ -27,7 +27,13 @@ public class LatestValueBasicEventBus<E extends LatestValueBasicEventBus.Timesta
                     E finalEvent = event;
                     if(consumerMap.containsKey(event.getClass())) {
                         consumerMap.get(event.getClass())
-                                .forEach(consumer -> consumer.accept(finalEvent));
+                                .forEach(consumer -> {
+                                    try {
+                                        consumer.accept(finalEvent);
+                                    } catch (Exception e) {
+                                        logger.error("Error happened", e);
+                                    }
+                                });
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();

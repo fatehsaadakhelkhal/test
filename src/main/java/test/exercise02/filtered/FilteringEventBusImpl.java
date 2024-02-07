@@ -1,6 +1,9 @@
 package test.exercise02.filtered;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import test.exercise02.EventBusWithFilter;
+import test.exercise02.latestValue.LatestValueBasicEventBus;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -8,14 +11,29 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class FilteringEventBusImpl<E> implements EventBusWithFilter<E> {
+    private static final Logger logger = LoggerFactory.getLogger(FilteringEventBusImpl.class);
+
     private final Map<Class<? extends E>, Collection<ConsumerWithFilter<E>>> consumersWithFilters = new ConcurrentHashMap<>();
 
     public void publishEvent(E o) {
         if(consumersWithFilters.containsKey(o.getClass())) {
             consumersWithFilters.get(o.getClass())
                     .stream()
-                    .filter(cwf  -> cwf.filter.test(o))
-                    .forEach(cwf -> cwf.consumer.accept(o));
+                    .filter(cwf  -> {
+                        try {
+                            return cwf.filter.test(o);
+                        } catch (Exception e) {
+                            logger.error("Error happened", e);
+                            return false;
+                        }
+                    })
+                    .forEach(cwf -> {
+                        try {
+                            cwf.consumer.accept(o);
+                        } catch (Exception e) {
+                            logger.error("Error happened", e);
+                        }
+                    });
         }
     }
 

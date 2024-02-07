@@ -19,7 +19,13 @@ public class SingleThreadedEventBus<E> implements BasicEventBus<E> {
     public void publishEvent(E event) {
         logger.info("producing event {} to consumers...", event.toString());
         if(consumerMap.containsKey(event.getClass())) {
-            consumerMap.get((Class<? extends E>) event.getClass()).forEach(consumer -> consumer.accept(event));
+            consumerMap.get((Class<? extends E>) event.getClass()).forEach(consumer -> {
+                try {
+                    consumer.accept(event);
+                } catch (Exception e) {
+                    logger.error("Error happened", e);
+                }
+            });
         }
     }
 
