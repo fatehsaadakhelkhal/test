@@ -1,21 +1,17 @@
 package test.exercise01;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.random.RandomGenerator;
 
 public class ProbabilisticRandomGenImpl implements ProbabilisticRandomGen {
-    private static final Logger logger = LoggerFactory.getLogger(ProbabilisticRandomGenImpl.class);
     public static final float EPSILON = 0.00001f;
 
     RandomGenerator random;
 
-    private int[] numbers;
-    private double[] cumulatedProbabilities;
+    private final int[] numbers;
+    private final double[] cumulatedProbabilities;
     public ProbabilisticRandomGenImpl(List<NumAndProbability> numAndProbabilityList) {
         this(numAndProbabilityList, new Random());
     }

@@ -3,46 +3,42 @@ package test.exercise04;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class StatisticsImpl implements SlidingWindowStatistics.Statistics {
-    private final Queue<Integer> measurements;
-    private final Queue<Long> times;
+    private final Queue<TimestampedMeasure> timestampedMeasures = new LinkedBlockingQueue<TimestampedMeasure>();
     private final long timeWindow;
 
-    public StatisticsImpl(Queue<Integer> measurements, Queue<Long> times, long timeWindow) {
-        this.measurements = measurements;
-        this.times = times;
+    public StatisticsImpl(long timeWindow) {
         this.timeWindow = timeWindow;
     }
 
     @Override
+    public void addMeasure(TimestampedMeasure measure) {
+        timestampedMeasures.offer(measure);
+    }
+
+    @Override
     public Double getMean() {
-        long countToSkip = this.times.stream().filter(t -> t < Instant.now().getEpochSecond() - this.timeWindow).count();
-        System.out.println(this.measurements
+        timestampedMeasures.removeIf(t -> t.timestamp() < Instant.now().getEpochSecond() - this.timeWindow);
+        return this.timestampedMeasures
                 .stream()
-                .skip(countToSkip)
-                .map(Object::toString)
-                .collect(Collectors.joining(", ")));
-        return this.measurements
-                .stream()
-                .skip(countToSkip)
-                .mapToInt(Integer::intValue)
+                .mapToInt(TimestampedMeasure::measure)
                 .summaryStatistics()
                 .getAverage();
     }
 
     @Override
     public Integer getMode() {
-        long countToSkip = this.times.stream().filter(t -> t < Instant.now().getEpochSecond() - this.timeWindow).count();
-        System.out.println(this.measurements
+        timestampedMeasures.removeIf(t -> t.timestamp() < Instant.now().getEpochSecond() - this.timeWindow);
+        System.out.println(this.timestampedMeasures
                 .stream()
-                .skip(countToSkip)
                 .map(Object::toString)
                 .collect(Collectors.joining(", ")));
-        return this.measurements.stream()
-                .skip(countToSkip)
+        return this.timestampedMeasures
+                .stream()
                 .collect(Collectors.groupingBy(
                         Function.identity(),
                         Collectors.counting()))
@@ -50,24 +46,33 @@ public class StatisticsImpl implements SlidingWindowStatistics.Statistics {
                 .stream()
                 .max(Map.Entry.comparingByValue())
                 .map(Map.Entry::getKey)
+                .map(TimestampedMeasure::measure)
                 .orElse(0);
     }
 
     @Override
     public Integer getPctile(int pctile) {
-        long countToSkip = this.times.stream().filter(t -> t < Instant.now().getEpochSecond() - this.timeWindow).count();
+        timestampedMeasures.removeIf(t -> t.timestamp() < Instant.now().getEpochSecond() - this.timeWindow);
+        System.out.println(this.timestampedMeasures
+                .stream()
+                .map(Object::toString)
+                .collect(Collectors.joining(", ")));
 
-        long countRemaining = this.measurements.stream().skip(countToSkip).count();
-        int index = (int) Math.ceil(pctile / 100.0 * countRemaining);
+        long count = this.timestampedMeasures.size();
+        int index = (int) Math.ceil(pctile / 100.0 * count);
         if (index == 0) {
             return 0;
         } else {
-            System.out.println(this.measurements
+            System.out.println(this.timestampedMeasures
                     .stream()
-                    .skip(countToSkip)
                     .map(Object::toString)
                     .collect(Collectors.joining(", ")));
-            return this.measurements.stream().skip(countToSkip).sorted().toList().get(index - 1);
+            return this.timestampedMeasures
+                    .stream()
+                    .map(TimestampedMeasure::measure)
+                    .sorted()
+                    .toList()
+                    .get(index - 1);
         }
     }
 }

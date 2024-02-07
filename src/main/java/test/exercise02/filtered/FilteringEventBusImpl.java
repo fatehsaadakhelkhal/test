@@ -3,15 +3,16 @@ package test.exercise02.filtered;
 import test.exercise02.EventBusWithFilter;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class FilteringEventBusImpl<E> implements EventBusWithFilter<E> {
-    private final Map<Class<? extends E>, Collection<ConsumerWithFilter<E>>> consumersWithFilters = new HashMap<>();
+    private final Map<Class<? extends E>, Collection<ConsumerWithFilter<E>>> consumersWithFilters = new ConcurrentHashMap<>();
 
     public void publishEvent(E o) {
         if(consumersWithFilters.containsKey(o.getClass())) {
-            consumersWithFilters.getOrDefault(o.getClass(), new HashSet<>())
+            consumersWithFilters.get(o.getClass())
                     .stream()
                     .filter(cwf  -> cwf.filter.test(o))
                     .forEach(cwf -> cwf.consumer.accept(o));
