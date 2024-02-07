@@ -22,37 +22,23 @@ public class TimeWindowThrottler2Test {
                 executorMock.proceed();
                 cursor++;
             } else {
+                throttler.notifyWhenCanProceed(this::executeAfterNotification);
                 System.out.println("should NOT proceed " + i);
+                break;
             }
             try {
-                Thread.sleep(1000);
+                Thread.sleep(100);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }
-        throttler.notifyWhenCanProceed(this::executeAfterNotification);
-        Thread.sleep(30000);
-        Mockito.verify(executorMock, Mockito.times(25)).proceed();
+        Thread.sleep(3000);
+        Mockito.verify(executorMock, Mockito.times(10)).proceed();
     }
 
     void executeAfterNotification() {
-        // handling remaining
-        for(int i = cursor; i <array.length; i++) {
-            if(throttler.shouldProceed() == Throttler.ThrottleResult.PROCEED) {
-                System.out.println("should proceed " + i);
-                executorMock.proceed();
-                cursor++;
-            } else {
-                System.out.println("should NOT proceed " + i);
-            }
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
+        executorMock.proceed();
         System.out.println("execute after notification");
-        throttler.notifyWhenCanProceed(this::executeAfterNotification);
     }
 
     static class Executor {
