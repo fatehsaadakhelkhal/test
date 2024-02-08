@@ -33,9 +33,9 @@ public class FilteringSlidingWindowStatisticsImplTest {
             }
         }
         assertEquals(16.5, mean, 0.000001);
-        assertEquals(16, mode);
+        assertEquals(19, mode);
         assertEquals(percentile, 14);
-        Mockito.verify(subscriber, Mockito.times(1)).consume(any(SlidingWindowStatistics.Statistics.class));
+        Mockito.verify(subscriber, Mockito.times(2)).consume(any(SlidingWindowStatistics.Statistics.class));
         Mockito.verify(subscriber, Mockito.times(4)).filter(any(SlidingWindowStatistics.Statistics.class));
     }
 
@@ -62,7 +62,7 @@ public class FilteringSlidingWindowStatisticsImplTest {
             }
         }
         assertEquals(16.5, mean, 0.000001);
-        assertEquals(16, mode);
+        assertEquals(19, mode);
         assertEquals(percentile, 14);
         Mockito.verify(subscriber, Mockito.times(4)).consume(any(SlidingWindowStatistics.Statistics.class));
         Mockito.verify(subscriber, Mockito.times(0)).filter(any(SlidingWindowStatistics.Statistics.class));

@@ -14,7 +14,7 @@ public class LatestValueEventBusTest {
     }
 
     @Test
-    public void subscribe_then_produce_then_produce_obsolete_should_call_consumer_once() {
+    public void subscribe_then_produce_then_produce_obsolete_should_call_consumer_once() throws InterruptedException {
         LatestValueBasicEventBus<Event> bus = new LatestValueBasicEventBus<>();
         Subscriber<Event> spy = Mockito.spy(new Subscriber<>());
         bus.addSubscriber(Event.class, spy::consume);
@@ -24,6 +24,8 @@ public class LatestValueEventBusTest {
         bus.publishEvent(event1);
         bus.publishEvent(event2);
         bus.publishEvent(event3);
+
+        Thread.sleep(500);
         Mockito.verify(spy, Mockito.times(1)).consume(event1);
         Mockito.verify(spy, Mockito.times(1)).consume(event3);
     }

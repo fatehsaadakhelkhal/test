@@ -51,5 +51,4 @@ public class FilteringSlidingWindowStatisticsImpl implements FilteringSlidingWin
     public void subscribeForStatistics(Consumer<Statistics> consumer, Predicate<Statistics> filter) {
         consumersWithFilters.add(new ConsumerWithFilter<>(consumer, filter));
     }
-
 }
