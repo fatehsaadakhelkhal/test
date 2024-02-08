@@ -30,7 +30,7 @@ public class MultiThreadedEventBusTest {
                 bus.publishEvent(event);
             });
         }
-        executorService.awaitTermination(55, TimeUnit.SECONDS);
+        executorService.awaitTermination(12, TimeUnit.SECONDS);
         Mockito.verify(spy1, Mockito.times(100)).consume(any(Object.class));
         Mockito.verify(spy2, Mockito.times(100)).consume(any(Object.class));
         Mockito.verify(spy3, Mockito.times(100)).consume(any(Object.class));

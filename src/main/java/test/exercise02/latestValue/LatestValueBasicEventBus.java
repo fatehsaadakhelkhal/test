@@ -15,38 +15,38 @@ public class LatestValueBasicEventBus<E extends LatestValueBasicEventBus.Timesta
     private final BlockingDeque<E> queue = new LinkedBlockingDeque<>();
     protected final Map<Class<? extends E>, Collection<Consumer<E>>> consumerMap = new ConcurrentHashMap<>();
 
+    private final ExecutorService executor = Executors.newFixedThreadPool(10);
+
     private final AtomicLong latestTimestamp = new AtomicLong(0);
-    public LatestValueBasicEventBus() {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            while(true) {
-                try {
-                    E event = queue.take();
-                    while(event.getTimestamp() < latestTimestamp.get()) {
-                        event = queue.take();
-                    }
-                    E finalEvent = event;
-                    if(consumerMap.containsKey(event.getClass())) {
-                        consumerMap.get(event.getClass())
-                                .forEach(consumer -> {
-                                    try {
-                                        consumer.accept(finalEvent);
-                                    } catch (Exception e) {
-                                        logger.error("Error happened", e);
-                                    }
-                                });
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        });
-    }
 
     @Override
     public void publishEvent(E event) {
         logger.info("producing event {} to consumers...", event.toString());
         latestTimestamp.set(Math.max(event.getTimestamp(), latestTimestamp.get()));
         queue.add(event);
+        executor.execute(this::notifySubscribers);
+    }
+
+    private void notifySubscribers() {
+        try {
+            E event = queue.take();
+            while (event.getTimestamp() < latestTimestamp.get()) {
+                event = queue.take();
+            }
+            E finalEvent = event;
+            if (consumerMap.containsKey(event.getClass())) {
+                consumerMap.get(event.getClass())
+                        .forEach(consumer -> {
+                            try {
+                                consumer.accept(finalEvent);
+                            } catch (Exception e) {
+                                logger.error("Error happened", e);
+                            }
+                        });
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Override

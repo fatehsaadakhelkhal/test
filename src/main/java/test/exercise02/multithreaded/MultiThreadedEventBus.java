@@ -15,32 +15,31 @@ public class MultiThreadedEventBus<E> implements BasicEventBus<E> {
     private final BlockingDeque<E> queue = new LinkedBlockingDeque<>();
     protected final Map<Class<? extends E>, Collection<Consumer<E>>> consumerMap = new ConcurrentHashMap<>();
 
-    public MultiThreadedEventBus() {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            while(true) {
-                try {
-                    E event = queue.take();
-                    if(consumerMap.containsKey(event.getClass())) {
-                        consumerMap.get(event.getClass())
-                                .forEach(consumer -> {
-                                    try {
-                                        consumer.accept(event);
-                                    } catch (Exception e) {
-                                        logger.error("Error happened", e);
-                                    }
-                                });
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-        });
-    }
+    private final ExecutorService executor = Executors.newFixedThreadPool(10);
 
     @Override
     public void publishEvent(E event) {
         logger.info("producing event {} to consumers...", event.toString());
         queue.add(event);
+        executor.execute(this::notifySubscribers);
+    }
+
+    private void notifySubscribers() {
+        try {
+            E event = queue.take();
+            if (consumerMap.containsKey(event.getClass())) {
+                consumerMap.get(event.getClass())
+                        .forEach(consumer -> {
+                            try {
+                                consumer.accept(event);
+                            } catch (Exception e) {
+                                logger.error("Error happened", e);
+                            }
+                        });
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Override

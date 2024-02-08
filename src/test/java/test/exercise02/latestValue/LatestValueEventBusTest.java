@@ -20,9 +20,12 @@ public class LatestValueEventBusTest {
         bus.addSubscriber(Event.class, spy::consume);
         Event event1 = new Event(2);
         Event event2 = new Event(1);
+        Event event3 = new Event(3);
         bus.publishEvent(event1);
         bus.publishEvent(event2);
+        bus.publishEvent(event3);
         Mockito.verify(spy, Mockito.times(1)).consume(event1);
+        Mockito.verify(spy, Mockito.times(1)).consume(event3);
     }
 
 /*    @Test
