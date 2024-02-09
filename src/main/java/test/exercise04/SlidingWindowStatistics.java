@@ -9,7 +9,6 @@ public interface SlidingWindowStatistics {
     // get latest statistics (poll)
     Statistics getLatestStatistics();
     interface Statistics {
-        void addMeasure(TimestampedMeasure measure);
 
         Double getMean();
         Integer getMode();

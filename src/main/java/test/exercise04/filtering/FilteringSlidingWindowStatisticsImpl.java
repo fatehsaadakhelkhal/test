@@ -1,40 +1,62 @@
 package test.exercise04.filtering;
 
-import test.exercise04.StatisticsImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import test.exercise04.TimestampedMeasure;
+import test.exercise04.StatisticsImpl;
+
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 public class FilteringSlidingWindowStatisticsImpl implements FilteringSlidingWindowStatistics {
+    private static final Logger logger = LoggerFactory.getLogger(FilteringSlidingWindowStatisticsImpl.class);
+
     private final List<ConsumerWithFilter<Statistics>> consumersWithFilters = new CopyOnWriteArrayList<>();
-    private final Statistics statistics;
+    private Statistics statistics;
+    private final long timeWindow;
+
+    private final Queue<TimestampedMeasure> measurements = new LinkedBlockingQueue<>();
+
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+    private final Lock lock = new ReentrantLock();
 
     public FilteringSlidingWindowStatisticsImpl(long timeWindow) {
-        statistics = new StatisticsImpl(timeWindow);
-        Executors.newSingleThreadScheduledExecutor()
-                .scheduleAtFixedRate(() -> {
-                            for (ConsumerWithFilter<Statistics> consumersWithFilter : consumersWithFilters) {
-                                if (consumersWithFilter.filter().test(getLatestStatistics())) {
-                                    consumersWithFilter.consumer().accept(getLatestStatistics());
-                                }
-                            }
-                        },
-                        timeWindow,
-                        timeWindow,
-                        TimeUnit.SECONDS);
+        this.timeWindow = timeWindow;
     }
 
+    private void notifySubscribers() {
+        consumersWithFilters.forEach(consumerWithFilter -> {
+            try {
+                for (ConsumerWithFilter<Statistics> consumersWithFilter : consumersWithFilters) {
+                    if (consumersWithFilter.filter().test(getLatestStatistics())) {
+                        consumersWithFilter.consumer().accept(getLatestStatistics());
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error happened", e);
+            }
+        });
+    }
     @Override
     public void add(int measurement) {
-        statistics.addMeasure(new TimestampedMeasure(measurement, Instant.now().getEpochSecond()));
+        lock.lock();
+        try {
+            long now = Instant.now().getEpochSecond();
+            measurements.removeIf(m -> m.timestamp() < now - timeWindow);
+            measurements.offer(new TimestampedMeasure(measurement, now));
+            statistics = new StatisticsImpl(measurements);
+            executorService.execute(this::notifySubscribers);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
